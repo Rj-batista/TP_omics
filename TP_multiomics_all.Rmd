@@ -61,15 +61,20 @@ ncol(mrna)
 ncol(protein) 
 ncol(sample_group)
 ```
+------------------------------------------------------------------------------
 Les dataset contiennent  150 échantillions repartie en trois groupes : GR_1, GR_2, et GR_3. 
 On a 184 pour mirna, 200 pour mnra, 142 pour protein variables.
-
+------------------------------------------------------------------------------
 
 3. Le coefficient de variation est défini comme le rapport entre l'écart-type $\sigma$ et la moyenne $\mu$ : $c_v = \frac{\sigma}{\mu}$
 Construisez un fonction qui calcule le coefficient de variation à partir d'un vecteur. 
 
+
 ```{r}
-coeff_varia<-function(vector_sd,vector_mean){
+library(matrixStats)
+coeff_varia<-function(dataset){
+   vector_sd<-colSds(as.matrix(dataset[sapply(dataset, is.numeric)]))  
+   vector_mean<-colMeans(dataset)
    c_v<-c()  
    for (i in 1:length(vector_sd)) {
       c_v_temp<-(vector_sd[i])/(vector_mean[i]) 
@@ -78,27 +83,14 @@ coeff_varia<-function(vector_sd,vector_mean){
    return(c_v)
 }
 ```
-Avant de pouvoir utiliser notre fonction nous allons récupérer la standard deviation de chaque colonne pour nos dataset. 
-Ensuite nous récupérons notre moyenne 
-```{r} 
-library(matrixStats)
-vector_mirna_sd<-colSds(as.matrix(mirna[sapply(mirna, is.numeric)])) 
-vector_mrna_sd<-colSds(as.matrix(mrna[sapply(mrna, is.numeric)])) 
-vector_protein_sd<-colSds(as.matrix(protein[sapply(protein, is.numeric)])) 
-```
+------------------------------------------------------------------------------
+Pour pouvoir calculer le coefficient de variation nous devons d'abord récupérer l'ecart type et la moyenne de chaque colonne par dataset.
+------------------------------------------------------------------------------
 
 ```{r}
-vector_mirna_mean<-colMeans(mirna) 
-vector_mrna_mean<-colMeans(mrna) 
-vector_protein_mean<-colMeans(protein)  
-```
-
-
-```{r}
-coeff_varia_mirna<-coeff_varia(vector_mirna_sd,vector_mirna_mean) 
-coeff_varia_mrna<-coeff_varia(vector_mrna_sd,vector_mrna_mean)
-coeff_varia_protein<-coeff_varia(vector_protein_sd,vector_protein_mean)
-
+coeff_varia_mirna<-coeff_varia(mirna) 
+coeff_varia_mrna<-coeff_varia(mrna)
+coeff_varia_protein<-coeff_varia(protein)
 ```
 
 
@@ -114,21 +106,47 @@ hist(coeff_varia_protein)
 
 **Question 2:** La distribution des coefficients de variation est-elle similaire dans les 3 blocs ?
 Si oui, quel type de donnée possède le plus de variabilité ?
+------------------------------------------------------------------------------
+On peut voir que les coefficients de variation ne sont pas similaire dans les 3 blocs. 
+Le bloc 'portein' possède le plus de variation 
+------------------------------------------------------------------------------
+5. Pour chacun des blocs, filtrez les données les plus variantes : $|c_{v}| \geq 0.15$ 
+
+```{r}
+coeff_varia_mirna_f<-coeff_varia_mirna[abs(coeff_varia_mirna) >= 0.15] 
+coeff_varia_mrna_f<-coeff_varia_mrna[abs(coeff_varia_mrna) >= 0.15] 
+coeff_varia_protein_f<-coeff_varia_protein[abs(coeff_varia_protein) >= 0.15] 
+```
 
 
-5. Pour chacun des blocs, filtrez les données les plus variantes : $|c_{v}| \geq 0.15$
+**Question 3:**: Combien reste-il de gènes ? de protéines ? de miRNA ? 
+```{r}
+length(coeff_varia_mirna_f) 
+length(coeff_varia_mrna_f) 
+length(coeff_varia_protein_f)
+```
+------------------------------------------------------------------------------
+Au départ nous avons respectivement :184,200 et 142 miRNA,gène et protéine 
+Nous avons après le filtre : 82,174,142
+------------------------------------------------------------------------------
+**Question 4:** Quel est le gène le plus variant ? La protéine associé à ce gène est-elle présente dans le jeu de donnée. 
+```{r}
+which.max(abs(coeff_varia_mrna))
+```
 
-**Question 3:**: Combien reste-il de gènes ? de protéines ? de miRNA ?
-
-**Question 4:** Quel est le gène le plus variant ? La protéine associé à ce gène est-elle présente dans le jeu de donnée.
-
+---
+Le gène le plus variant est PLCD4
+---
 **Question 5:** A l'aide des bases de donnée de votre choix répondez aux questions suivantes:
 
  * Quel est le rôle de ce gène ? 
  * Sur quel chromosome est-il localisé ? 
  * Quelle est la longueur en nucléotide de sa séquence ?
  * Quelle est la longueur en acides aminés de la protéine associée (ou des isoformes) ?
+---
 
+
+---
 \newpage
 
 # Partie II
