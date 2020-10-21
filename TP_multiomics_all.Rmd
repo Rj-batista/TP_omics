@@ -131,57 +131,128 @@ Nous avons après le filtre : 82,174,142
 ------------------------------------------------------------------------------
 **Question 4:** Quel est le gène le plus variant ? La protéine associé à ce gène est-elle présente dans le jeu de donnée. 
 ```{r}
-which.max(abs(coeff_varia_mrna))
+which.max(abs(coeff_varia_mrna)) 
+which(names(protein)=='HMDBP04454')
 ```
 
----
-Le gène le plus variant est PLCD4
----
+------------------------------------------------------------------------------
+Le gène le plus variant est PLCD4 
+Sont gène associés n'est pas présent dans le jeu de données
+------------------------------------------------------------------------------
 **Question 5:** A l'aide des bases de donnée de votre choix répondez aux questions suivantes:
 
  * Quel est le rôle de ce gène ? 
  * Sur quel chromosome est-il localisé ? 
  * Quelle est la longueur en nucléotide de sa séquence ?
  * Quelle est la longueur en acides aminés de la protéine associée (ou des isoformes) ?
----
+------------------------------------------------------------------------------
 
 
----
+------------------------------------------------------------------------------
 \newpage
 
 # Partie II
 
 ## 1. Single-omic: l'ACP avec `mixOmics`
 
-**Question 6:** A quoi sert l'Analyse en Composante Principale ? Expliquez brievement sont fonctionnement ?
+**Question 6:** A quoi sert l'Analyse en Composante Principale ? Expliquez brievement sont fonctionnement ? 
+------------------------------------------------------------------------------
+L’ analyse en composantes principales (ACP)  permet d’analyser et de visualiser un jeu de données contenant des individus décrits par plusieurs variables quantitatives. *
+Le principe de la PCA est de diminuer le nombre de variable en créant des nouvelles variables artificielles : les composantes principales.Celles-ci sont orthogonales entres-elles permettant de visualiser un maximum de variations avec un minimum d'axes.
+------------------------------------------------------------------------------
 
-1. Réaliser l'ACP sur les données mRNA.
+1. Réaliser l'ACP sur les données mRNA non filtrées. 
+```{r}
+acp <- pca(mrna, scale = FALSE, center = TRUE, ncomp=50)
+acp
+```
 
-**Question 7:** Combien de composantes retenez-vous ? Justifiez / Illustrez
 
-2. Après avoir relancer l'ACP avec le bon nombre de composante, utiliser un graphique pour représenter les variables.
 
-**Question 8:** Quelles sont les variables qui contribuent le plus à l'axe 1 ?
+**Question 7:** Combien de composantes retenez-vous ? Justifiez / Illustrez 
+```{r}
+barplot(acp$explained_variance)
+```
+
+------------------------------------------------------------------------------ 
+Après avoir illustré nos composantes principales, on retient uniquement les deux premières composantes que sont PC1 et PC2. 
+Celle-ci, exlique environ 32% de nos données, les composantes principales suivantes expliquent très faiblement la variance des données
+------------------------------------------------------------------------------
+
+2. Après avoir relancer l'ACP avec le bon nombre de composante, utiliser un graphique pour représenter les variables. 
+
+```{r}
+acp_2 <- pca(mrna, center = TRUE, scale = TRUE, ncomp=2) 
+plotVar(acp_2)
+```
+
+
+**Question 8:** Quelles sont les variables qui contribuent le plus à l'axe 1 ? 
+------------------------------------------------------------------------------ 
+D'après notre graphique, les variables qui contribuent le plus à l'axe 1 sont : 
+KDM4B
+ZNF552
+C4orf34
+CCNA2
+------------------------------------------------------------------------------
 
 3. Avec un graphique, représenter les échantillons dans l'espace formé par les composantes. 
 Les échantillons sont colorés en fonction du groupe. Affichez la légende et ajoutez un titre.
 
-4. La *sparse ACP* `spca()` implémente une étape de *feature selection*. En utilisant la documentation de la fonction et/ou l'aide disponible en ligne,  utilisez la `spca()` de manière a sélectionner 10 gènes sur la première composante et 5 gènes sur la seconde composante.
+```{r}
+col = as.factor(sample_group$Y)
+plot(acp_2$x , col = col, pch=19, main = "ACP des mRNA", xlab = "PC1(18,9%)", ylab = "PC2(13,1%)") ; legend("bottomleft", legend=c("Groupe 1", "Groupe 2", "Groupe 3"),fill=c(1,2,3))
+```
+
+4. La *sparse ACP* `spca()` implémente une étape de *feature selection*. En utilisant la documentation de la fonction et/ou l'aide disponible en ligne,  utilisez la `spca()` de manière a sélectionner 10 gènes sur la première composante et 5 gènes sur la seconde composante. 
+
+```{r}
+spca_1<-spca(mrna,center=TRUE, scale=TRUE, ncomp = 2, keepX=c(10,5))
+spca_1
+plotVar(spca_1) 
+gene10_spca<-selectVar(spca_1,comp = 1) 
+gene5_spca<-selectVar(spca_1,comp=2)
+gene10_spca[1] 
+gene5_spca[1]
+```
+
 
 **Question 9:** Quelles sont les gènes que vous avez sélectionnés? *(une fonction est disponible)*
+------------------------------------------------------------------------------  
+Les gènes sélectionnés sur la composante 1 sont : KDM4B, ZNF552, PREX1, TTC39A, STC2, LRIG1, C4orf34, MTL5, FUT8, SLC19A2. 
+Les gènes sélectionnés sur la composante 2 sont : APBB1IP, NCF4, FLI1, C1orf162, CSF1R
 
+------------------------------------------------------------------------------ 
 
 ## 2. Projection on Latent Structures
 
-1. Réalisez une PLS `pls()` avec les données mRNA et protéines en incluant 3 composantes `(ncomp = 3)`.
+1. Réalisez une PLS `pls()` avec les données mRNA et protéines en incluant 3 composantes `(ncomp = 3)`. 
+```{r}
+PLS_1<-pls(X=mrna,Y=protein,ncomp = 3) 
+plotVar(PLS_1)
+plotIndiv(PLS_1) 
+plotLoadings(PLS_1) 
+```
 
-**Question 10:** A quoi sert la régression PLS pour l'intégration multi-omique?
+
+**Question 10:** A quoi sert la régression PLS pour l'intégration multi-omique? 
+------------------------------------------------------------------------------   
+L'idée de la régression PLS (Partial Least Squares) est de créer à partir d'un tableau de n observations décrites par p variables, un ensemble de h composantes avec h < p. La méthode de construction des composantes diffère de celle de l'ACP, et présente l'avantage de bien s'accommoder de la présence de données manquantes. La détermination du nombre de composantes à retenir est en général fondée sur un critère mettant en jeu une validation croisée. L'utilisateur peut aussi fixer lui-même le nombre de composantes à retenir.
+------------------------------------------------------------------------------  
 
 2. Affichez un *scatter plot* des échantillons en affichant uniquement les composantes 2 et 3.
-Les échantillons doivent être coloriés par groupe. Ajoutez une légende et un titre.
+Les échantillons doivent être coloriés par groupe. Ajoutez une légende et un titre. 
+```{r}
+plot(acp$x[,2],acp$x[,3],pch=19,col=col,xlim = c(-20,20),ylim=c(-20,20))
+```
+
 
 3. Affichez un *arrow plot* en affichant uniquement les composantes 1 et 3.
-Les flèches doivent être coloriés par groupe. Ajoutez une légende et un titre.
+Les flèches doivent être coloriés par groupe. Ajoutez une légende et un titre. 
+```{r}
+plotArrow(PLS_1$x[,1],PLS_1$x[,3],pch=19,col=col,xlim = c(-20,20),ylim=c(-20,20))
+```
+
 
 4. La *sparse PLS* `spls()` implémente une étape de *feature selection*. En utilisant la documentation de la fonction et/ou l'aide disponible en ligne,  utilisez la *sPLS* de manière a sélectionner (10 gènes, 9 protéines) sur la première composante, (5 gènes, 5 protéines) sur la seconde composante et (1 gène, 1 protéine) sur la troisième composante.
 
